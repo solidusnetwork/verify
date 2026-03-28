@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.next/
+*.env
+.env.*
+!.env.example
+*.local
+data/
+.DS_Store
+coverage/
+*.tsbuildinfo
+.turbo/
+src/lib/models/
+eng.traineddata
