@@ -12,3 +12,8 @@ coverage/
 .turbo/
 src/lib/models/
 eng.traineddata
+
+# Claude
+CLAUDE.md
+.claude/
+_PROJECT.md
