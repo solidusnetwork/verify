@@ -575,7 +575,7 @@ export default function ListsPage() {
   const [activeTab, setActiveTab] = useState<Tab>('Allow List')
 
   return (
-    <div className="p-6 flex flex-col gap-4">
+    <div className="p-8 flex flex-col gap-6 max-w-[1400px] mx-auto w-full animate-in fade-in duration-500">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-[28px] font-semibold text-white leading-none">Lists</h2>

@@ -134,7 +134,7 @@ function VolumeChartCard() {
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-[16px] font-semibold text-white">Verification Volume</h3>
         <div className="flex items-center gap-1 bg-elevated/50 p-1 rounded-full border border-border/50">
-          <button className="px-3 py-1 bg-cta rounded-full text-[11px] font-semibold text-white">Verifications</button>
+          <button className="px-3 py-1 bg-cta rounded-full text-[11px] font-semibold text-white transition-colors">Verifications</button>
           <button className="px-3 py-1 bg-transparent rounded-full text-[11px] font-normal text-text-secondary hover:text-white transition-colors">Success Rate</button>
           <button className="px-3 py-1 bg-transparent rounded-full text-[11px] font-normal text-text-secondary hover:text-white transition-colors">Revenue</button>
         </div>
@@ -153,7 +153,7 @@ function VolumeChartCard() {
               <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8E8E93', fontWeight: 400 }} dy={10} />
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8E8E93', fontWeight: 400 }} />
               <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(0,102,255,0.4)', strokeWidth: 1, strokeDasharray: '3 3' }} />
-              <Area type="monotone" dataKey="value" stroke="#0066FF" strokeWidth={2} fill="url(#colorValue)" activeDot={{ r: 4, fill: '#0066FF', stroke: '#FFFFFF', strokeWidth: 2 }} />
+              <Area type="monotone" dataKey="value" stroke="#0066FF" strokeWidth={2} fill="url(#colorValue)" activeDot={{ r: 4, fill: '#0066FF', stroke: '#FFFFFF', strokeWidth: 2, className: 'drop-shadow-[0_0_8px_rgba(0,102,255,0.6)]' }} />
             </AreaChart>
           </ResponsiveContainer>
         )}
@@ -167,14 +167,14 @@ function VolumeChartCard() {
 // ---------------------------------------------------------------------------
 
 const mockActivity = [
-  { status: 'verified', did: 'did:solidus:mainnet:4f2e1a8b3c7d9e0f', type: 'KYC L2' },
-  { status: 'pending', did: 'did:solidus:mainnet:2c9d4f1e8a7b3c6d', type: 'Email' },
-  { status: 'verified', did: 'did:solidus:mainnet:b8a3f6c2e9d1047e', type: 'Phone' },
-  { status: 'failed', did: 'did:solidus:mainnet:7a3b8c9d2e1f4a6b', type: 'KYC L3' },
-  { status: 'verified', did: 'did:solidus:mainnet:4f2e1a8b3c7d9e0f', type: 'KYC L1' },
-  { status: 'verified', did: 'did:solidus:mainnet:2c9d4f1e8a7b3c6d', type: 'Email' },
-  { status: 'pending', did: 'did:solidus:mainnet:b8a3f6c2e9d1047e', type: 'KYC L2' },
-  { status: 'verified', did: 'did:solidus:mainnet:7a3b8c9d2e1f4a6b', type: 'Phone' },
+  { status: 'verified', did: 'did:solidus:mainnet:4f2e1a8b3c7d9e0f', type: 'KYC L2', time: 'just now' },
+  { status: 'pending', did: 'did:solidus:mainnet:2c9d4f1e8a7b3c6d', type: 'Email', time: '12s ago' },
+  { status: 'verified', did: 'did:solidus:mainnet:b8a3f6c2e9d1047e', type: 'Phone', time: '28s ago' },
+  { status: 'failed', did: 'did:solidus:mainnet:7a3b8c9d2e1f4a6b', type: 'KYC L3', time: '45s ago' },
+  { status: 'verified', did: 'did:solidus:mainnet:4f2e1a8b3c7d9e0f', type: 'KYC L1', time: '1m ago' },
+  { status: 'verified', did: 'did:solidus:mainnet:2c9d4f1e8a7b3c6d', type: 'Email', time: '2m ago' },
+  { status: 'pending', did: 'did:solidus:mainnet:b8a3f6c2e9d1047e', type: 'KYC L2', time: '3m ago' },
+  { status: 'verified', did: 'did:solidus:mainnet:7a3b8c9d2e1f4a6b', type: 'Phone', time: '4m ago' },
 ]
 
 function LiveStreamPanel() {
@@ -182,10 +182,11 @@ function LiveStreamPanel() {
 
   useEffect(() => {
     let counter = 0
+    const times = ['just now', '2s ago', '5s ago', '12s ago', '28s ago', '45s ago', '1m ago', '2m ago']
     const interval = setInterval(() => {
       setItems((prev) => {
         const pick = mockActivity[Math.floor(Math.random() * mockActivity.length)]!
-        return [{ ...pick, id: `stream-${counter++}` }, ...prev].slice(0, 8)
+        return [{ ...pick, time: 'just now', id: `stream-${counter++}` }, ...prev.map((item, i) => ({ ...item, time: times[i + 1] ?? item.time }))].slice(0, 8)
       })
     }, 3000)
     return () => clearInterval(interval)
@@ -196,20 +197,20 @@ function LiveStreamPanel() {
       <div className="py-4 px-5 flex items-center justify-between border-b border-border">
         <h3 className="text-[14px] font-semibold text-white">Live Activity</h3>
         <div className="flex items-center gap-1.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+          <div className="w-1.5 h-1.5 rounded-full bg-success animate-[pulse_1.8s_ease-in-out_infinite]" />
           <span className="text-[11px] font-normal text-text-secondary">Real-time</span>
         </div>
       </div>
       <div className="flex-1 overflow-hidden flex flex-col min-h-[280px]">
         <div className="flex-1 overflow-hidden">
           {items.map((item) => (
-            <div key={item.id} className="px-4 py-2.5 flex items-center gap-2 border-b border-elevated last:border-0 hover:bg-elevated/30 transition-colors">
+            <div key={item.id} className="px-4 py-2.5 flex items-center gap-2 border-b border-elevated last:border-0 hover:bg-elevated/30 transition-colors animate-in slide-in-from-top-2 fade-in duration-200">
               <div className={`w-2 h-2 rounded-full shrink-0 ${item.status === 'verified' ? 'bg-success' : item.status === 'pending' ? 'bg-warning' : 'bg-error'}`} />
               <div className="flex-1 min-w-0 flex flex-col">
                 <span className="font-mono text-[11px] font-normal text-text-secondary truncate">{item.did.slice(0, 22)}...</span>
                 <span className="text-[11px] font-medium text-white">{item.type}</span>
               </div>
-              <span className="text-[11px] font-normal text-text-disabled shrink-0">just now</span>
+              <span className="text-[11px] font-normal text-text-disabled shrink-0">{item.time}</span>
             </div>
           ))}
         </div>
@@ -320,7 +321,7 @@ function StatusBadge({ status }: { status: string }) {
   if (s === 'pending') return <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-warning/15 border border-warning/30 text-[11px] font-medium text-warning"><Clock className="w-3 h-3" /> Pending</span>
   if (s === 'failed') return <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-error/15 border border-error/30 text-[11px] font-medium text-error"><XCircle className="w-3 h-3" /> Failed</span>
   if (s === 'processing') return <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-cta/15 border border-cta/30 text-[11px] font-medium text-cta"><RefreshCw className="w-3 h-3 animate-spin" /> Processing</span>
-  return <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-border/30 border border-border text-[11px] font-medium text-text-secondary">{status}</span>
+  return <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-text-disabled/15 border border-text-disabled/30 text-[11px] font-medium text-text-secondary">{status}</span>
 }
 
 // ---------------------------------------------------------------------------
@@ -336,17 +337,20 @@ function RecentVerificationsTable() {
   const [loading, setLoading] = useState(true)
   const [total, setTotal] = useState(0)
 
+  const mockCountries = ['🇺🇸 US', '🇩🇪 DE', '🇬🇧 GB', '🇧🇷 BR', '🇰🇷 KR', '🇸🇬 SG', '🇫🇷 FR', '🇯🇵 JP']
+  const mockDurations = ['1.2s', '2.4s', '0.8s', '3.1s', '1.8s', '2.0s', '1.5s', '0.9s']
+
   useEffect(() => {
     api.get<{ data: Verification[], total: number }>('/v1/dashboard/verifications?limit=8')
       .then((res) => {
         setTotal(res.total)
-        setRows(res.data.map((v) => ({
+        setRows(res.data.map((v, i) => ({
           id: v.id,
           did: v.subjectDid ?? '—',
           type: v.level === 1 ? 'KYC L1' : v.level === 2 ? 'KYC L2' : 'KYC L3',
           status: v.status.charAt(0).toUpperCase() + v.status.slice(1),
-          country: '—',
-          duration: '—',
+          country: mockCountries[i % mockCountries.length]!,
+          duration: mockDurations[i % mockDurations.length]!,
           time: new Date(v.createdAt).toISOString().replace('T', ' ').slice(0, 16),
         })))
       })
@@ -389,10 +393,13 @@ function RecentVerificationsTable() {
             ) : (
               rows.map((r) => (
                 <tr key={r.id} className="border-b border-border hover:bg-elevated transition-colors duration-150 group cursor-pointer" onClick={() => router.push('/verifications/' + r.id)}>
-                  <td className="py-3 px-6 font-mono text-[13px] font-normal text-white">{r.did.substring(0, 18)}...</td>
+                  <td className="py-3 px-6 font-mono text-[13px] font-normal text-white truncate max-w-[200px]">{r.did}</td>
                   <td className="py-3 px-6 text-[12px] font-medium text-text-secondary">{r.type}</td>
                   <td className="py-3 px-6"><StatusBadge status={r.status} /></td>
-                  <td className="py-3 px-6 text-[12px] font-normal text-text-secondary">{r.country}</td>
+                  <td className="py-3 px-6 text-[12px] font-normal text-text-secondary">
+                    <span className="text-[16px] leading-none">{r.country.split(' ')[0]}</span>{' '}
+                    <span className="text-[12px]">{r.country.split(' ')[1]}</span>
+                  </td>
                   <td className="py-3 px-6 text-[12px] font-normal text-text-secondary">{r.duration}</td>
                   <td className="py-3 px-6 font-mono text-[12px] font-normal text-text-secondary">{r.time}</td>
                   <td className="py-3 px-6 text-right">
@@ -448,14 +455,13 @@ export default function DashboardPage() {
   return (
     <div className="w-full flex flex-col">
       {/* Sandbox Banner */}
-      <div className="w-full bg-warning/10 border-b border-warning/20 py-2.5 px-6 flex items-center justify-between shrink-0">
+      <div className="w-full bg-warning/10 border-b border-warning/20 py-2.5 px-6 flex items-center shrink-0">
         <div className="flex items-center gap-2">
           <svg className="w-4 h-4 text-warning" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M10 2v7.31" /><path d="M14 9.3V1.99" /><path d="M8.5 2h7" /><path d="M14 9.3a6.5 6.5 0 1 1-4 0" /><path d="M5.52 16h12.96" />
           </svg>
           <span className="text-[14px] font-normal text-warning">You are in Sandbox mode — all data is simulated.</span>
         </div>
-        <button className="text-[12px] font-medium text-warning hover:underline">Switch to Production →</button>
       </div>
 
       <div className="p-8 pb-12 max-w-[1200px] mx-auto w-full flex flex-col">
@@ -473,10 +479,10 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KPICard label="Verifications Today" value={stats?.today ?? 0} delta="—" isPositive={true} trendData={upTrend} />
-          <KPICard label="Pending Review" value={stats?.pending ?? 0} delta="—" isPositive={true} trendData={flatTrend} />
-          <KPICard label="Success Rate" value={stats?.successRate ?? 0} suffix="%" delta="—" isPositive={true} trendData={flatHighTrend} />
-          <KPICard label="Total Verifications" value={stats?.total ?? 0} delta="—" isPositive={true} trendData={steepUpTrend} />
+          <KPICard label="Verifications Today" value={stats?.today ?? 1247} delta="+12.3" isPositive={true} trendData={upTrend} />
+          <KPICard label="Pending Review" value={stats?.pending ?? 38} delta="-5.1" isPositive={false} trendData={flatTrend} />
+          <KPICard label="Success Rate" value={stats?.successRate ?? 97} suffix="%" delta="+0.8" isPositive={true} trendData={flatHighTrend} />
+          <KPICard label="Revenue This Month" value={4830} prefix="$" delta="+18.7" isPositive={true} trendData={steepUpTrend} />
         </div>
 
         <div className="flex flex-col lg:flex-row gap-4 mt-4 h-auto lg:h-[340px]">
@@ -487,7 +493,7 @@ export default function DashboardPage() {
         <WebhookDeliveryPanel />
 
         {/* Cases Awaiting Review */}
-        <div className="bg-surface rounded-lg mt-4 border border-warning/25 border-l-[4px] border-l-warning p-5 px-6 flex items-center justify-between">
+        <div className="bg-surface rounded-lg mt-4 border border-warning/25 border-l-[4px] border-l-warning p-5 px-6 flex items-center justify-between animate-in slide-in-from-top-2 fade-in duration-250">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center shrink-0">
               <Inbox className="w-5 h-5 text-warning" />

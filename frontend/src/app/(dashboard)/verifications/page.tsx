@@ -202,7 +202,7 @@ export default function VerificationsPage() {
   }
 
   return (
-    <div className="p-8 max-w-[1400px] mx-auto w-full flex flex-col gap-6">
+    <div className="p-8 max-w-[1400px] mx-auto w-full flex flex-col gap-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
         <h2 className="text-[28px] font-semibold text-white leading-none">Verifications</h2>
         <div className="flex items-center gap-3">
@@ -324,9 +324,14 @@ export default function VerificationsPage() {
                 <th className="py-0 px-4 text-[12px] font-medium text-text-secondary tracking-[0.04em] uppercase">
                   <div className="flex items-center gap-1.5 cursor-pointer hover:text-white">DID <ArrowUpDown className="w-3 h-3" /></div>
                 </th>
+                {activeTab === 'Flagged' && (
+                  <th className="py-0 px-4 text-[12px] font-medium text-text-secondary tracking-[0.04em] uppercase w-[100px]">Risk</th>
+                )}
                 <th className="py-0 px-4 text-[12px] font-medium text-text-secondary tracking-[0.04em] uppercase">Type</th>
                 <th className="py-0 px-4 text-[12px] font-medium text-text-secondary tracking-[0.04em] uppercase">Status</th>
-                <th className="py-0 px-4 text-[12px] font-medium text-text-secondary tracking-[0.04em] uppercase w-[100px]">Risk</th>
+                {activeTab !== 'Flagged' && (
+                  <th className="py-0 px-4 text-[12px] font-medium text-text-secondary tracking-[0.04em] uppercase w-[100px]">Risk</th>
+                )}
                 <th className="py-0 px-4 text-[12px] font-medium text-text-secondary tracking-[0.04em] uppercase">Country</th>
                 <th className="py-0 px-4 text-[12px] font-medium text-text-secondary tracking-[0.04em] uppercase">Duration</th>
                 <th className="py-0 px-4 text-[12px] font-medium text-text-secondary tracking-[0.04em] uppercase">Cost</th>
@@ -358,9 +363,14 @@ export default function VerificationsPage() {
                         </button>
                       </div>
                     </td>
+                    {activeTab === 'Flagged' && (
+                      <td className="py-0 px-4"><RiskBadge score={r.risk} /></td>
+                    )}
                     <td className="py-0 px-4 text-[13px] font-normal text-white">{r.type}</td>
                     <td className="py-0 px-4"><StatusBadge status={r.status} /></td>
-                    <td className="py-0 px-4"><RiskBadge score={r.risk} /></td>
+                    {activeTab !== 'Flagged' && (
+                      <td className="py-0 px-4"><RiskBadge score={r.risk} /></td>
+                    )}
                     <td className="py-0 px-4 text-[13px] font-normal text-white">
                       <span className="text-[16px] leading-none">{r.country.split(' ')[0]}</span>{' '}{r.country.split(' ')[1] ?? ''}
                     </td>
@@ -383,10 +393,27 @@ export default function VerificationsPage() {
                 <tr>
                   <td colSpan={10} className="h-[400px]">
                     <div className="flex flex-col items-center justify-center w-full h-full text-center">
-                      <Search className="w-12 h-12 text-text-secondary mb-4" />
-                      <h3 className="text-[22px] font-semibold text-white mb-2">No results</h3>
-                      <p className="text-[14px] font-normal text-text-secondary mb-6">Try adjusting your filters or search query.</p>
-                      <button onClick={() => { setSearch(''); setActiveTab('All'); clearAllFilters() }} className="text-[14px] font-medium text-cta hover:underline">Clear filters</button>
+                      {activeTab === 'Flagged' ? (
+                        <>
+                          <Flag className="w-12 h-12 text-warning mb-4" />
+                          <h3 className="text-[22px] font-semibold text-white mb-2">No flagged verifications</h3>
+                          <p className="text-[14px] font-normal text-text-secondary mb-6">No verifications have been flagged for review. Flagged items appear when risk signals are detected.</p>
+                        </>
+                      ) : search ? (
+                        <>
+                          <Search className="w-12 h-12 text-text-secondary mb-4" />
+                          <h3 className="text-[22px] font-semibold text-white mb-2">No results for &ldquo;{search}&rdquo;</h3>
+                          <p className="text-[14px] font-normal text-text-secondary mb-6">Check the DID format or try a different search term.</p>
+                          <button onClick={() => setSearch('')} className="text-[14px] font-medium text-cta hover:underline">Clear search</button>
+                        </>
+                      ) : (
+                        <>
+                          <Search className="w-12 h-12 text-text-secondary mb-4" />
+                          <h3 className="text-[22px] font-semibold text-white mb-2">No verifications found</h3>
+                          <p className="text-[14px] font-normal text-text-secondary mb-6">Try adjusting your filters or search query.</p>
+                          <button onClick={() => { setSearch(''); setActiveTab('All'); clearAllFilters() }} className="text-[14px] font-medium text-cta hover:underline">Clear filters</button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>

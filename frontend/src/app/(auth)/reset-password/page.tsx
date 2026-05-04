@@ -80,7 +80,7 @@ export default function ResetPasswordPage() {
             </p>
             <Link
               href="/forgot-password"
-              className="w-full h-12 bg-cta hover:bg-cta/90 text-white rounded-md text-[16px] font-semibold transition-colors flex items-center justify-center"
+              className="w-full h-12 bg-cta hover:bg-cta/90 text-white rounded-md text-[16px] font-semibold transition-colors shadow-[0_0_12px_rgba(0,102,255,0.4)] flex items-center justify-center"
             >
               Request a new link →
             </Link>
@@ -99,7 +99,7 @@ export default function ResetPasswordPage() {
             </p>
             <Link
               href="/login"
-              className="w-full h-12 bg-cta hover:bg-cta/90 text-white rounded-md text-[16px] font-semibold transition-colors flex items-center justify-center"
+              className="w-full h-12 bg-cta hover:bg-cta/90 text-white rounded-md text-[16px] font-semibold transition-colors shadow-[0_0_12px_rgba(0,102,255,0.4)] flex items-center justify-center"
             >
               Sign in to your dashboard →
             </Link>
@@ -181,7 +181,7 @@ export default function ResetPasswordPage() {
               <button
                 type="submit"
                 disabled={!hasMinLength || !isMatch || loading}
-                className="w-full h-12 bg-cta hover:bg-cta/90 text-white rounded-md text-[16px] font-semibold transition-colors flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed mt-2"
+                className="w-full h-12 bg-cta hover:bg-cta/90 text-white rounded-md text-[16px] font-semibold transition-colors shadow-[0_0_12px_rgba(0,102,255,0.4)] flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed mt-2"
               >
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Update Password'}
               </button>

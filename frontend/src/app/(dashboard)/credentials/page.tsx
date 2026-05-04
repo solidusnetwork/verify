@@ -342,7 +342,7 @@ export default function CredentialsPage() {
   }
 
   return (
-    <div className="p-6 flex flex-col gap-4">
+    <div className="p-8 flex flex-col gap-6 max-w-[1400px] mx-auto w-full animate-in fade-in duration-500">
       {/* Page header */}
       <div className="flex items-center justify-between">
         <h2 className="text-[28px] font-semibold text-white leading-none">Credentials</h2>

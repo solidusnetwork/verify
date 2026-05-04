@@ -106,7 +106,7 @@ export default function ForgotPasswordPage() {
                   </p>
                 )}
               </div>
-              <button type="submit" className="h-10 w-full bg-cta hover:bg-cta/90 text-white text-[14px] font-semibold rounded-md transition-colors">Send Reset Link</button>
+              <button type="submit" className="h-12 w-full bg-cta hover:bg-cta/90 text-white text-[16px] font-semibold rounded-md transition-colors shadow-[0_0_12px_rgba(0,102,255,0.4)]">Send Reset Link</button>
             </form>
           )}
         </div>

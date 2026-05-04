@@ -127,7 +127,7 @@ export default function TeamPage() {
   }
 
   return (
-    <div className="p-6 flex flex-col gap-6">
+    <div className="p-8 flex flex-col gap-6 max-w-[1400px] mx-auto w-full animate-in fade-in duration-500">
 
       {/* Header */}
       <div className="flex items-center justify-between">

@@ -47,6 +47,7 @@ export default function VerificationDetailPage() {
   const id = (params.id as string) ?? 'vsn_9f8e7d6c5b4a3291'
   const shortId = id.includes('_') ? id.split('_')[1] : id
 
+  const verificationStatus = 'Verified'
   const [isFlagged, setIsFlagged] = useState(false)
   const [showFlagPopover, setShowFlagPopover] = useState(false)
   const [isFlagging, setIsFlagging] = useState(false)
@@ -84,7 +85,7 @@ export default function VerificationDetailPage() {
   const did = 'did:solidus:mainnet:7a3b8c9d2e1f4a6b'
 
   return (
-    <div className="p-8 max-w-[1400px] mx-auto w-full flex flex-col gap-6 pb-24 relative">
+    <div className="p-8 max-w-[1400px] mx-auto w-full flex flex-col gap-6 pb-24 relative animate-in fade-in duration-500">
 
       {/* Toast */}
       {showToast && (
@@ -109,7 +110,7 @@ export default function VerificationDetailPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-1">
-          <h2 className="text-[28px] font-semibold text-white leading-none">
+          <h2 className={`text-[28px] font-semibold leading-none ${verificationStatus.toLowerCase() === 'failed' ? 'text-error' : 'text-white'}`}>
             Verification #{shortId}
           </h2>
           <span className="text-[14px] font-normal text-text-secondary">
@@ -118,7 +119,7 @@ export default function VerificationDetailPage() {
         </div>
 
         <div className="flex items-center gap-3 relative">
-          <StatusBadge status="Verified" isFlagged={isFlagged} />
+          <StatusBadge status={verificationStatus} isFlagged={isFlagged} />
 
           {!isFlagged ? (
             <div className="relative" ref={popoverRef}>
@@ -188,7 +189,7 @@ export default function VerificationDetailPage() {
             <div className="flex flex-col gap-1">
               <span className="text-[12px] font-medium text-text-secondary">DID</span>
               <div className="flex items-center justify-between max-w-[400px]">
-                <span className="font-mono text-[14px] font-normal text-white truncate pr-2">{did}</span>
+                <span className="font-mono text-[16px] font-normal text-white truncate pr-2">{did}</span>
                 <button
                   onClick={() => navigator.clipboard.writeText(did)}
                   className="text-text-secondary hover:text-white transition-colors shrink-0"
@@ -292,7 +293,7 @@ export default function VerificationDetailPage() {
                     className={`flex items-start gap-3 py-3 bg-surface ${!step.isLast ? 'border-b border-border' : ''}`}
                   >
                     <div className="shrink-0 bg-surface py-0.5">
-                      <CircleCheck className="w-5 h-5 text-success" />
+                      <CircleCheck className="w-5 h-5 text-success fill-success/10" />
                     </div>
                     <div className="flex flex-col gap-0.5 w-full">
                       <div className="flex items-center justify-between w-full">

@@ -64,11 +64,19 @@ const kpiSparklines = {
 }
 
 const funnelStages = [
-  { label: 'Session Started', count: 48241, pct: 100, drop: null },
-  { label: 'Document Uploaded', count: 45628, pct: 94.6, drop: '-2.6%' },
-  { label: 'Document Verified', count: 43847, pct: 90.9, drop: '-4.1%' },
-  { label: 'Liveness Passed', count: 42980, pct: 89.1, drop: '-3.5%' },
-  { label: 'Credential Issued', count: 45502, pct: 94.3, drop: null },
+  { label: 'Initiated', count: 52100, pct: 100, color: '#0066FF', h: '100%', drop: null },
+  { label: 'Document', count: 49450, pct: 94.9, color: 'rgba(0,102,255,0.85)', h: '95%', drop: '-5.1%' },
+  { label: 'Liveness Passed', count: 47230, pct: 90.7, color: 'rgba(0,102,255,0.70)', h: '90%', drop: '-4.2%' },
+  { label: 'Consensus', count: 46800, pct: 89.8, color: 'rgba(0,102,255,0.55)', h: '88%', drop: '-0.9%' },
+  { label: 'Issued', count: 46340, pct: 89.0, color: '#34C759', h: '86%', drop: '-0.8%' },
+]
+
+const dropOffReasons = [
+  { reason: 'Document quality', pct: 38 },
+  { reason: 'Camera denied', pct: 27 },
+  { reason: 'Session timeout', pct: 18 },
+  { reason: 'Browser limit', pct: 12 },
+  { reason: 'Other', pct: 5 },
 ]
 
 const pieData = [
@@ -321,34 +329,59 @@ function VolumeChartSection() {
 
 function FunnelSection() {
   return (
-    <div className="bg-surface rounded-lg p-5 px-6 flex flex-col gap-4">
-      <h3 className="text-[16px] font-semibold text-text-primary">Verification Funnel</h3>
-      <div className="flex flex-col gap-3">
-        {funnelStages.map((stage, i) => (
-          <div key={i} className="flex flex-col gap-1">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-[12px] font-medium text-text-primary">{stage.label}</span>
+    <div className="bg-surface rounded-lg p-6 flex flex-col gap-6">
+      <div className="flex items-center gap-3">
+        <h3 className="text-[22px] font-semibold text-text-primary">Verification Funnel</h3>
+        <span className="text-[14px] font-normal text-text-secondary">30-day cohort</span>
+      </div>
+
+      <div className="flex gap-8 items-start">
+        <div className="flex-1 flex flex-col gap-4">
+          <div className="w-full h-[200px] flex items-end justify-between relative">
+            {funnelStages.map((stage, i) => (
+              <div key={i} className="flex flex-col items-center flex-1 h-full justify-end relative">
                 {stage.drop && (
-                  <span className="text-[11px] font-normal text-error">{stage.drop}</span>
+                  <div className="absolute top-1/2 -left-6 z-10 bg-surface px-1.5 text-[12px] font-medium text-error transform -translate-y-1/2">
+                    {stage.drop}
+                  </div>
                 )}
+                <div className="flex flex-col items-center mb-4">
+                  <span className="text-[16px] font-semibold text-text-primary">{stage.count.toLocaleString()}</span>
+                </div>
+                <div
+                  className="w-[80%] rounded-t-sm transition-all duration-300 hover:opacity-80"
+                  style={{ backgroundColor: stage.color, height: stage.h }}
+                />
+                <div className="mt-4 flex flex-col items-center text-center h-[40px]">
+                  <span className="text-[12px] font-medium text-text-primary truncate max-w-full">{stage.label}</span>
+                  <span className="text-[11px] font-normal text-text-secondary">{stage.pct}%</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[12px] font-normal text-text-secondary">{stage.count.toLocaleString()}</span>
-                <span className="text-[12px] font-semibold text-text-primary w-[44px] text-right">{stage.pct}%</span>
-              </div>
-            </div>
-            <div className="h-2 w-full bg-elevated rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full"
-                style={{
-                  width: `${stage.pct}%`,
-                  backgroundColor: stage.pct >= 95 ? '#34C759' : stage.pct >= 90 ? '#0066FF' : '#FF9500',
-                }}
-              />
-            </div>
+            ))}
           </div>
-        ))}
+
+          <div className="flex items-center gap-8 mt-4 pt-4 border-t border-elevated">
+            <span className="text-[18px] font-semibold text-success">Completion Rate: 89.0%</span>
+            <span className="text-[18px] font-semibold text-text-primary">Avg. Drop-off: Liveness (Step 3)</span>
+          </div>
+        </div>
+
+        <div className="w-[280px] shrink-0 bg-elevated rounded-lg p-4 flex flex-col gap-3">
+          <h3 className="text-[14px] font-semibold text-text-secondary">Where Users Drop Off</h3>
+          <div className="flex flex-col gap-3">
+            {dropOffReasons.map((d, i) => (
+              <div key={i} className="flex flex-col gap-1">
+                <div className="flex items-center justify-between text-[13px]">
+                  <span className="text-text-primary">{d.reason}</span>
+                  <span className="text-error">{d.pct}%</span>
+                </div>
+                <div className="w-full bg-surface h-1.5 rounded-full overflow-hidden">
+                  <div className="h-full bg-error rounded-full" style={{ width: `${d.pct}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -903,7 +936,7 @@ function ScheduledReportsSection() {
 
 export default function AnalyticsPage() {
   return (
-    <div className="p-6 flex flex-col gap-4 max-w-[1200px] mx-auto w-full">
+    <div className="p-8 flex flex-col gap-6 max-w-[1400px] mx-auto w-full animate-in fade-in duration-500">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-[28px] font-semibold text-text-primary leading-none">Analytics</h2>
@@ -957,11 +990,11 @@ export default function AnalyticsPage() {
         />
       </div>
 
-      {/* Section 2 + 3: Funnel and Volume */}
-      <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-4">
-        <FunnelSection />
-        <VolumeChartSection />
-      </div>
+      {/* Section 2: Funnel */}
+      <FunnelSection />
+
+      {/* Section 3: Volume */}
+      <VolumeChartSection />
 
       {/* Section 4: Pie + Cost Savings */}
       <div className="flex flex-col lg:flex-row gap-4">

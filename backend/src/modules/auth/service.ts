@@ -1,7 +1,8 @@
 import { randomBytes, scrypt as scryptCb, timingSafeEqual, createHmac } from 'node:crypto'
 import type { BinaryLike, ScryptOptions } from 'node:crypto'
 import { getSql } from '../../db/index.js'
-import { ApiError, unauthorized, conflict, notFound } from '../../plugins/error-handler.js'
+import { config } from '../../config.js'
+import { ApiError, unauthorized, conflict, notFound, badRequest } from '../../plugins/error-handler.js'
 
 function scrypt(password: BinaryLike, salt: BinaryLike, keylen: number, options: ScryptOptions): Promise<Buffer> {
   return new Promise((resolve, reject) =>
@@ -170,7 +171,8 @@ interface OrgRow {
   id: string
   email: string
   name: string
-  password_hash: string
+  password_hash: string | null
+  google_id: string | null
   totp_secret: string | null
   totp_enabled: boolean
   subscription_tier: string
@@ -237,6 +239,11 @@ export async function login(
     throw unauthorized('Invalid email or password')
   }
 
+  // Google-only accounts have no password — they must use Google login
+  if (!org.password_hash) {
+    throw unauthorized('This account uses Google sign-in. Please use "Continue with Google" to log in.')
+  }
+
   const valid = await verifyPassword(password, org.password_hash)
   if (!valid) {
     throw unauthorized('Invalid email or password')
@@ -297,5 +304,313 @@ export async function getOrg(organizationId: string): Promise<{
     name: org.name,
     subscriptionTier: org.subscription_tier,
     trialEndsAt: org.trial_ends_at.toISOString(),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Google OAuth
+// ---------------------------------------------------------------------------
+
+const GOOGLE_REDIRECT_URI = 'https://verify.solidus.network/v1/auth/google/callback'
+
+interface GoogleTokenResponse {
+  access_token: string
+  token_type: string
+  expires_in: number
+  id_token?: string
+}
+
+interface GoogleUserInfo {
+  id: string
+  email: string
+  verified_email: boolean
+  name: string
+  picture?: string
+}
+
+/**
+ * Build the Google OAuth consent URL. Throws if Google credentials are not configured.
+ */
+export function getGoogleAuthUrl(): string {
+  if (!config.GOOGLE_CLIENT_ID) {
+    throw badRequest('Google login is not configured')
+  }
+
+  const params = new URLSearchParams({
+    client_id: config.GOOGLE_CLIENT_ID,
+    redirect_uri: GOOGLE_REDIRECT_URI,
+    response_type: 'code',
+    scope: 'openid email profile',
+    access_type: 'offline',
+    prompt: 'select_account',
+  })
+
+  return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`
+}
+
+/**
+ * Exchange an authorization code for tokens, fetch user info, and upsert
+ * the organization record. Returns the org ID, email, name, and whether
+ * this is a brand-new account.
+ */
+export async function handleGoogleCallback(code: string): Promise<{
+  organizationId: string
+  email: string
+  name: string
+  isNew: boolean
+}> {
+  if (!config.GOOGLE_CLIENT_ID || !config.GOOGLE_CLIENT_SECRET) {
+    throw badRequest('Google login is not configured')
+  }
+
+  // 1. Exchange code for tokens
+  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      code,
+      client_id: config.GOOGLE_CLIENT_ID,
+      client_secret: config.GOOGLE_CLIENT_SECRET,
+      redirect_uri: GOOGLE_REDIRECT_URI,
+      grant_type: 'authorization_code',
+    }),
+  })
+
+  if (!tokenRes.ok) {
+    const body = await tokenRes.text()
+    console.error('[GOOGLE_TOKEN_EXCHANGE_FAILED]', tokenRes.status, body)
+    throw new ApiError(502, 'Google token exchange failed', body)
+  }
+
+  const tokens = (await tokenRes.json()) as GoogleTokenResponse
+
+  // 2. Fetch user info
+  const userRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+    headers: { Authorization: `Bearer ${tokens.access_token}` },
+  })
+
+  if (!userRes.ok) {
+    throw new ApiError(502, 'Failed to fetch Google user info')
+  }
+
+  const googleUser = (await userRes.json()) as GoogleUserInfo
+
+  if (!googleUser.email) {
+    throw new ApiError(502, 'Google account has no email address')
+  }
+
+  const sql = getSql()
+
+  // 3. Look up by google_id
+  const byGoogleId = await sql<{ id: string; email: string; name: string }[]>`
+    SELECT id, email, name FROM organizations WHERE google_id = ${googleUser.id} LIMIT 1
+  `
+  if (byGoogleId[0]) {
+    return {
+      organizationId: byGoogleId[0].id,
+      email: byGoogleId[0].email,
+      name: byGoogleId[0].name,
+      isNew: false,
+    }
+  }
+
+  // 4. Look up by email — link google_id if found
+  const byEmail = await sql<{ id: string; email: string; name: string }[]>`
+    SELECT id, email, name FROM organizations WHERE email = ${googleUser.email} LIMIT 1
+  `
+  if (byEmail[0]) {
+    await sql`UPDATE organizations SET google_id = ${googleUser.id}, updated_at = now() WHERE id = ${byEmail[0].id}`
+    return {
+      organizationId: byEmail[0].id,
+      email: byEmail[0].email,
+      name: byEmail[0].name,
+      isNew: false,
+    }
+  }
+
+  // 5. Create new organization (no password — Google-only account)
+  const inserted = await sql<{ id: string }[]>`
+    INSERT INTO organizations (email, name, google_id, password_hash)
+    VALUES (${googleUser.email}, ${googleUser.name}, ${googleUser.id}, NULL)
+    RETURNING id
+  `
+  const row = inserted[0]
+  if (!row) throw new Error('INSERT returned no row')
+
+  return {
+    organizationId: row.id,
+    email: googleUser.email,
+    name: googleUser.name,
+    isNew: true,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// GitHub OAuth
+// ---------------------------------------------------------------------------
+
+const GITHUB_REDIRECT_URI = 'https://verify.solidus.network/v1/auth/github/callback'
+
+interface GitHubTokenResponse {
+  access_token: string
+  token_type: string
+  scope: string
+}
+
+interface GitHubUser {
+  id: number
+  login: string
+  name: string | null
+  email: string | null
+}
+
+interface GitHubEmail {
+  email: string
+  primary: boolean
+  verified: boolean
+  visibility: string | null
+}
+
+/**
+ * Build the GitHub OAuth consent URL. Throws if GitHub credentials are not configured.
+ */
+export function getGitHubAuthUrl(): string {
+  if (!config.GITHUB_CLIENT_ID) {
+    throw badRequest('GitHub login is not configured')
+  }
+
+  const params = new URLSearchParams({
+    client_id: config.GITHUB_CLIENT_ID,
+    redirect_uri: GITHUB_REDIRECT_URI,
+    scope: 'user:email',
+  })
+
+  return `https://github.com/login/oauth/authorize?${params.toString()}`
+}
+
+/**
+ * Exchange an authorization code for tokens, fetch user info, and upsert
+ * the organization record. Returns the org ID and email.
+ */
+export async function handleGitHubCallback(code: string): Promise<{
+  organizationId: string
+  email: string
+  name: string
+  isNew: boolean
+}> {
+  if (!config.GITHUB_CLIENT_ID || !config.GITHUB_CLIENT_SECRET) {
+    throw badRequest('GitHub login is not configured')
+  }
+
+  // 1. Exchange code for tokens
+  const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Accept': 'application/json',
+    },
+    body: new URLSearchParams({
+      code,
+      client_id: config.GITHUB_CLIENT_ID,
+      client_secret: config.GITHUB_CLIENT_SECRET,
+      redirect_uri: GITHUB_REDIRECT_URI,
+    }),
+  })
+
+  if (!tokenRes.ok) {
+    const body = await tokenRes.text()
+    console.error('[GITHUB_TOKEN_EXCHANGE_FAILED]', tokenRes.status, body)
+    throw new ApiError(502, 'GitHub token exchange failed', body)
+  }
+
+  const tokens = (await tokenRes.json()) as GitHubTokenResponse
+
+  if (!tokens.access_token) {
+    console.error('[GITHUB_TOKEN_EXCHANGE_FAILED]', 'no access_token in response', tokens)
+    throw new ApiError(502, 'GitHub token exchange failed: no access token returned')
+  }
+
+  // 2. Fetch user info
+  const userRes = await fetch('https://api.github.com/user', {
+    headers: {
+      Authorization: `Bearer ${tokens.access_token}`,
+      'User-Agent': 'solidus-verify',
+    },
+  })
+
+  if (!userRes.ok) {
+    throw new ApiError(502, 'Failed to fetch GitHub user info')
+  }
+
+  const githubUser = (await userRes.json()) as GitHubUser
+
+  // 3. Fetch primary verified email (GitHub may not expose it on the user object)
+  let email = githubUser.email
+  if (!email) {
+    const emailsRes = await fetch('https://api.github.com/user/emails', {
+      headers: {
+        Authorization: `Bearer ${tokens.access_token}`,
+        'User-Agent': 'solidus-verify',
+      },
+    })
+
+    if (!emailsRes.ok) {
+      throw new ApiError(502, 'Failed to fetch GitHub user emails')
+    }
+
+    const emails = (await emailsRes.json()) as GitHubEmail[]
+    const primary = emails.find((e) => e.primary && e.verified)
+    if (!primary) {
+      throw new ApiError(502, 'GitHub account has no verified primary email address')
+    }
+    email = primary.email
+  }
+
+  const githubId = String(githubUser.id)
+  const displayName = githubUser.name ?? githubUser.login
+
+  const sql = getSql()
+
+  // 4. Look up by github_id
+  const byGitHubId = await sql<{ id: string; email: string; name: string }[]>`
+    SELECT id, email, name FROM organizations WHERE github_id = ${githubId} LIMIT 1
+  `
+  if (byGitHubId[0]) {
+    return {
+      organizationId: byGitHubId[0].id,
+      email: byGitHubId[0].email,
+      name: byGitHubId[0].name,
+      isNew: false,
+    }
+  }
+
+  // 5. Look up by email — link github_id if found
+  const byEmail = await sql<{ id: string; email: string; name: string }[]>`
+    SELECT id, email, name FROM organizations WHERE email = ${email} LIMIT 1
+  `
+  if (byEmail[0]) {
+    await sql`UPDATE organizations SET github_id = ${githubId}, updated_at = now() WHERE id = ${byEmail[0].id}`
+    return {
+      organizationId: byEmail[0].id,
+      email: byEmail[0].email,
+      name: byEmail[0].name,
+      isNew: false,
+    }
+  }
+
+  // 6. Create new organization (no password — GitHub-only account)
+  const inserted = await sql<{ id: string }[]>`
+    INSERT INTO organizations (email, name, github_id, password_hash)
+    VALUES (${email}, ${displayName}, ${githubId}, NULL)
+    RETURNING id
+  `
+  const row = inserted[0]
+  if (!row) throw new Error('INSERT returned no row')
+
+  return {
+    organizationId: row.id,
+    email,
+    name: displayName,
+    isNew: true,
   }
 }

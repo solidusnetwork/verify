@@ -342,21 +342,41 @@ function SecurityTab() {
           </div>
           {/* TOTP setup flow */}
           {totpSetup && (
-            <div className="p-4 flex flex-col gap-3">
-              <p className="text-[13px] text-text-secondary">Copy this URL into your authenticator app:</p>
-              <div className="bg-elevated rounded-md p-3 font-mono text-[12px] text-white break-all select-all">
-                {totpSetup.otpAuthUrl}
+            <div className="p-4 flex flex-col gap-4">
+              <div className="flex gap-5">
+                {/* QR code */}
+                <div className="shrink-0 w-[180px] h-[180px] bg-white rounded-lg p-3 flex items-center justify-center">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(totpSetup.otpAuthUrl)}&format=svg`}
+                    alt="Scan with authenticator app"
+                    width={150}
+                    height={150}
+                    className="w-[150px] h-[150px]"
+                  />
+                </div>
+                <div className="flex-1 flex flex-col gap-3">
+                  <div>
+                    <p className="text-[14px] font-medium text-white mb-1">Scan QR code</p>
+                    <p className="text-[13px] text-text-secondary leading-relaxed">Open your authenticator app (Google Authenticator, Authy, 1Password) and scan this QR code.</p>
+                  </div>
+                  <div>
+                    <p className="text-[12px] font-medium text-text-secondary mb-1">Or enter this key manually:</p>
+                    <div className="bg-elevated rounded-md px-3 py-2 font-mono text-[13px] text-white tracking-widest select-all break-all">
+                      {totpSetup.secret}
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-end gap-3">
+              <div className="border-t border-border pt-4 flex items-end gap-3">
                 <div className="flex-1">
-                  <label className="text-[12px] font-medium text-text-secondary block mb-1">Verification Code</label>
+                  <label className="text-[12px] font-medium text-text-secondary block mb-1">Enter the 6-digit code from your app</label>
                   <input
                     type="text"
                     value={totpCode}
-                    onChange={(e) => setTotpCode(e.target.value)}
-                    placeholder="Enter 6-digit code"
+                    onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="000000"
                     maxLength={6}
-                    className="w-full h-10 px-3 bg-elevated border border-border rounded-md text-[14px] text-white placeholder:text-text-disabled outline-none focus:border-cta/50 transition-colors font-mono"
+                    className="w-full h-10 px-3 bg-elevated border border-border rounded-md text-[14px] text-white placeholder:text-text-disabled outline-none focus:border-cta/50 transition-colors font-mono tracking-[0.3em] text-center"
                   />
                 </div>
                 <button onClick={handleTotpEnable} disabled={totpCode.length < 6 || totpLoading} className="h-10 px-4 bg-cta text-white text-[13px] font-medium rounded-md hover:bg-cta/90 transition-colors disabled:opacity-50">
@@ -1236,7 +1256,7 @@ export default function SettingsPage() {
   const isDocumentsTab = activeTab === 'documents'
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full animate-in fade-in duration-500">
       {/* Secondary sidebar */}
       <div className="w-[200px] border-r border-border shrink-0 flex flex-col py-6 bg-bg">
         {TABS.map(tab => {

@@ -42,8 +42,6 @@ function ThemeToggle() {
 
 function MarketingNav() {
   const [scrolled, setScrolled] = useState(false)
-  const [langOpen, setLangOpen] = useState(false)
-
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20)
     window.addEventListener('scroll', handleScroll)
@@ -76,6 +74,7 @@ function MarketingNav() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Language switcher — disabled until i18n is implemented
           <div className="relative">
             <button
               onClick={() => setLangOpen(!langOpen)}
@@ -95,6 +94,7 @@ function MarketingNav() {
               </div>
             )}
           </div>
+          */}
 
           <ThemeToggle />
 

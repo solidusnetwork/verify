@@ -208,7 +208,7 @@ export default function WebhooksPage() {
   }
 
   return (
-    <div className="p-8 max-w-[900px] mx-auto w-full flex flex-col gap-6">
+    <div className="p-8 max-w-[900px] mx-auto w-full flex flex-col gap-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-[28px] font-semibold text-white leading-none">Webhooks</h2>

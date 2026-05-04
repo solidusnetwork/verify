@@ -77,9 +77,9 @@ function UpgradePlanModal({ onClose }: { onClose: () => void }) {
               <div className="text-[13px] text-text-secondary">For growing teams</div>
             </div>
             <div>
-              <span className="text-[26px] font-bold text-white">$50</span>
+              <span className="text-[26px] font-bold text-white">$499</span>
               <span className="text-[13px] text-text-secondary">/mo</span>
-              <div className="text-[12px] text-text-secondary mt-0.5">+ $0.015 / verification</div>
+              <div className="text-[12px] text-text-secondary mt-0.5">+ $0.005 / verification</div>
             </div>
             <ul className="flex flex-col gap-2 flex-1">
               {PLAN_GROWTH_FEATURES.map(f => (
@@ -126,7 +126,7 @@ export default function BillingPage() {
   const [showUpgrade, setShowUpgrade] = useState(false)
 
   return (
-    <div className="p-6 flex flex-col gap-6">
+    <div className="p-8 flex flex-col gap-6 max-w-[1400px] mx-auto w-full animate-in fade-in duration-500">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-[28px] font-semibold text-white leading-none">Billing</h2>
@@ -146,7 +146,7 @@ export default function BillingPage() {
                   </span>
                 </div>
                 <div className="text-[14px] text-text-secondary">
-                  $0.015 / verification &nbsp;·&nbsp; $50/mo base
+                  $0.015 / verification &nbsp;·&nbsp; $499/mo base
                 </div>
               </div>
               <button

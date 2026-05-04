@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect } from 'react'
-import { Key, Eye, EyeOff, Copy, Trash2, CheckCircle, Plus, X, Search, RotateCcw } from 'lucide-react'
+import { Key, Eye, EyeOff, Copy, Trash2, CheckCircle, Plus, X, Search, RotateCcw, AlertTriangle, ChevronDown, Check } from 'lucide-react'
 import { api, ApiError } from '../../../lib/api'
 import type { ApiKey, ApiKeyCreateResponse } from '../../../types/api'
 
@@ -14,6 +14,14 @@ export default function ApiKeysPage() {
   const [showModal, setShowModal] = useState(false)
   const [newKeyName, setNewKeyName] = useState('')
   const [newKeyEnv, setNewKeyEnv] = useState('Test')
+  const [newKeyExpiry, setNewKeyExpiry] = useState('Never')
+  const [newKeyPerms, setNewKeyPerms] = useState<Record<string, boolean>>({
+    'Read verifications': true,
+    'Create verifications': true,
+    'Manage webhooks': false,
+    'Manage team': false,
+    'Manage billing': false,
+  })
   const [generatedKey, setGeneratedKey] = useState('')
   const [step, setStep] = useState(1)
 
@@ -64,11 +72,13 @@ export default function ApiKeysPage() {
     setStep(1)
     setNewKeyName('')
     setNewKeyEnv('Test')
+    setNewKeyExpiry('Never')
+    setNewKeyPerms({ 'Read verifications': true, 'Create verifications': true, 'Manage webhooks': false, 'Manage team': false, 'Manage billing': false })
     setGeneratedKey('')
   }
 
   return (
-    <div className="p-8 max-w-[900px] mx-auto w-full flex flex-col gap-6">
+    <div className="p-8 max-w-[900px] mx-auto w-full flex flex-col gap-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-[28px] font-semibold text-white leading-none">API Keys</h2>
@@ -77,6 +87,12 @@ export default function ApiKeysPage() {
         <button onClick={() => setShowModal(true)} className="h-9 px-4 bg-cta hover:bg-cta/90 text-white text-[14px] font-medium rounded-md transition-colors flex items-center gap-2">
           <Plus className="w-4 h-4" /> Create API Key
         </button>
+      </div>
+
+      {/* Sandbox Banner */}
+      <div className="bg-warning/10 border border-warning/25 rounded-lg p-3.5 px-5 flex items-center gap-3">
+        <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
+        <span className="text-[14px] text-warning">You are in Sandbox mode — test keys will not process real verifications.</span>
       </div>
 
       <div className="bg-surface rounded-lg overflow-hidden">
@@ -252,7 +268,49 @@ export default function ApiKeysPage() {
                       ))}
                     </div>
                   </div>
-                  {/* Permissions and expiry deferred — backend only supports name + mode */}
+                  <div>
+                    <label className="text-[12px] font-medium text-text-secondary uppercase tracking-[0.04em] block mb-1.5">Permissions</label>
+                    <div className="flex flex-col gap-2">
+                      <label className="flex items-center gap-2 text-[13px] text-text-secondary cursor-pointer hover:text-white transition-colors"
+                        onClick={() => {
+                          const allChecked = Object.values(newKeyPerms).every(v => v)
+                          setNewKeyPerms(Object.fromEntries(Object.keys(newKeyPerms).map(k => [k, !allChecked])))
+                        }}
+                      >
+                        <div className={`w-4 h-4 rounded-[3px] border flex items-center justify-center transition-colors ${Object.values(newKeyPerms).every(v => v) ? 'bg-cta border-cta' : 'bg-elevated border-border'}`}>
+                          {Object.values(newKeyPerms).every(v => v) && <Check className="w-3 h-3 text-white" />}
+                        </div>
+                        Select All
+                      </label>
+                      {Object.entries(newKeyPerms).map(([perm, checked]) => (
+                        <label key={perm} className="flex items-center gap-2 text-[13px] text-white cursor-pointer">
+                          <div
+                            onClick={() => setNewKeyPerms(prev => ({ ...prev, [perm]: !prev[perm] }))}
+                            className={`w-4 h-4 rounded-[3px] border flex items-center justify-center transition-colors cursor-pointer ${checked ? 'bg-cta border-cta' : 'bg-elevated border-border hover:border-text-secondary'}`}
+                          >
+                            {checked && <Check className="w-3 h-3 text-white" />}
+                          </div>
+                          {perm}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[12px] font-medium text-text-secondary uppercase tracking-[0.04em] block mb-1.5">Expiry</label>
+                    <div className="relative">
+                      <select
+                        value={newKeyExpiry}
+                        onChange={e => setNewKeyExpiry(e.target.value)}
+                        className="w-full h-10 px-3 bg-elevated border border-border rounded-md text-[14px] text-white outline-none focus:border-cta/50 transition-colors appearance-none cursor-pointer"
+                      >
+                        <option value="Never">Never</option>
+                        <option value="30 days">30 days</option>
+                        <option value="90 days">90 days</option>
+                        <option value="1 year">1 year</option>
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary pointer-events-none" />
+                    </div>
+                  </div>
                 </div>
                 <div className="flex justify-end gap-3 pt-2">
                   <button onClick={closeModal} className="h-9 px-4 rounded-md border border-border text-[14px] text-white hover:bg-elevated transition-colors">Cancel</button>

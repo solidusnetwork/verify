@@ -27,6 +27,12 @@ const schema = z.object({
 
   ISSUER_PRIVATE_KEY: z.string().length(64),  // hex-encoded Ed25519 private key
   ISSUER_DID: z.string().min(1),           // did:solidus:... of the verify issuer
+
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+
+  GITHUB_CLIENT_ID: z.string().optional(),
+  GITHUB_CLIENT_SECRET: z.string().optional(),
 })
 
 const parsed = schema.safeParse(process.env)

@@ -63,7 +63,7 @@ export default function DocumentsConfigPage() {
   )
 
   return (
-    <div className="p-8 pb-12 max-w-[1200px] mx-auto w-full flex flex-col gap-6">
+    <div className="p-8 pb-12 max-w-[1400px] mx-auto w-full flex flex-col gap-6 animate-in fade-in duration-500">
 
       {/* Top Bar */}
       <div className="flex items-center justify-between">

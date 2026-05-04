@@ -22,6 +22,8 @@ import {
   FileCheck,
   AlertTriangle,
   X,
+  Wrench,
+  LogIn,
 } from 'lucide-react'
 
 function Logo() {
@@ -211,11 +213,13 @@ function TopBar() {
     <div className="h-16 px-6 bg-surface border-b border-border flex items-center justify-between sticky top-0 z-10">
       <div className="font-semibold text-lg">Dashboard</div>
       <div className="flex items-center gap-3">
+        {/* Language switcher — disabled until i18n is implemented
         <button className="h-9 px-3 rounded-md bg-surface border border-border flex items-center gap-1.5 hover:bg-elevated transition-colors duration-150 group">
           <Globe className="w-[18px] h-[18px] text-text-secondary group-hover:text-white transition-colors" />
           <span className="text-xs font-medium text-text-secondary group-hover:text-white transition-colors">EN</span>
           <ChevronDown className="w-3 h-3 text-text-secondary group-hover:text-white transition-colors" />
         </button>
+        */}
         <ThemeToggle />
         <div className="w-9 h-9 rounded-full bg-elevated border border-border flex items-center justify-center overflow-hidden">
           <UserCheck className="w-4 h-4 text-text-secondary" />
@@ -239,10 +243,46 @@ function RateLimitBanner({ onClose }: { onClose: () => void }) {
   )
 }
 
+function MaintenanceMode({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-surface border border-border rounded-xl p-8 max-w-[400px] w-full mx-4 text-center shadow-elevated">
+        <div className="w-16 h-16 rounded-2xl bg-warning/10 border border-warning/20 flex items-center justify-center mx-auto mb-4">
+          <Wrench className="w-8 h-8 text-warning" />
+        </div>
+        <h2 className="text-[22px] font-semibold text-white mb-2">Under Maintenance</h2>
+        <p className="text-[14px] text-text-secondary mb-6">We&apos;re performing scheduled maintenance. This usually takes less than 15 minutes.</p>
+        <button onClick={onClose} className="h-10 px-5 bg-elevated border border-border rounded-md text-[14px] font-medium text-white hover:bg-border transition-colors">
+          Dismiss
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function SessionExpiredModal({ onReauth }: { onReauth: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-surface border border-border rounded-xl p-8 max-w-[400px] w-full mx-4 text-center shadow-elevated">
+        <div className="w-16 h-16 rounded-2xl bg-cta/10 border border-cta/20 flex items-center justify-center mx-auto mb-4">
+          <LogIn className="w-8 h-8 text-cta" />
+        </div>
+        <h2 className="text-[22px] font-semibold text-white mb-2">Session Expired</h2>
+        <p className="text-[14px] text-text-secondary mb-6">Your session has expired for security reasons. Please sign in again to continue.</p>
+        <button onClick={onReauth} className="h-10 px-5 bg-cta hover:bg-cta/90 rounded-md text-[14px] font-semibold text-white transition-colors">
+          Sign In Again
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
   const router = useRouter()
   const [showRateLimit, setShowRateLimit] = useState(false)
+  const [showMaintenance, setShowMaintenance] = useState(false)
+  const [showSessionExpired, setShowSessionExpired] = useState(false)
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -274,6 +314,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </main>
       </div>
+      {showMaintenance && <MaintenanceMode onClose={() => setShowMaintenance(false)} />}
+      {showSessionExpired && <SessionExpiredModal onReauth={() => { setShowSessionExpired(false); router.push('/login') }} />}
     </div>
   )
 }

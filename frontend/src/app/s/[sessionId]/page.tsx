@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { ShieldCheck, Upload, Camera, CheckCircle, AlertCircle, Loader2, XCircle } from 'lucide-react'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000'
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? ''
 
 type Step = 'intro' | 'document' | 'liveness' | 'processing' | 'complete' | 'failed'
 

@@ -61,6 +61,72 @@ async function authRoutesPlugin(app: FastifyInstance): Promise<void> {
   // authenticate decorator is now defined in buildApp() — available to all plugins
 
   // -------------------------------------------------------------------------
+  // GET /google — redirect to Google OAuth consent screen
+  // -------------------------------------------------------------------------
+  app.get('/google', async (_request, reply) => {
+    const url = authService.getGoogleAuthUrl()
+    return reply.redirect(url)
+  })
+
+  // -------------------------------------------------------------------------
+  // GET /google/callback — handle Google OAuth callback
+  // -------------------------------------------------------------------------
+  app.get('/google/callback', async (request, reply) => {
+    const { code, error: oauthError } = request.query as { code?: string; error?: string }
+
+    if (oauthError || !code) {
+      return reply.redirect('https://verify.solidus.network/login?error=google_auth_failed')
+    }
+
+    try {
+      const result = await authService.handleGoogleCallback(code)
+
+      const token = await app.signToken(
+        { sub: result.organizationId, email: result.email, type: 'access' },
+        { expiresIn: '24h' },
+      )
+
+      return reply.redirect(`https://verify.solidus.network/google-callback?token=${encodeURIComponent(token)}`)
+    } catch (err) {
+      app.log.error({ err }, 'Google OAuth callback failed')
+      return reply.redirect('https://verify.solidus.network/login?error=google_auth_failed')
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // GET /github — redirect to GitHub OAuth consent screen
+  // -------------------------------------------------------------------------
+  app.get('/github', async (_request, reply) => {
+    const url = authService.getGitHubAuthUrl()
+    return reply.redirect(url)
+  })
+
+  // -------------------------------------------------------------------------
+  // GET /github/callback — handle GitHub OAuth callback
+  // -------------------------------------------------------------------------
+  app.get('/github/callback', async (request, reply) => {
+    const { code, error: oauthError } = request.query as { code?: string; error?: string }
+
+    if (oauthError || !code) {
+      return reply.redirect('https://verify.solidus.network/login?error=github_auth_failed')
+    }
+
+    try {
+      const result = await authService.handleGitHubCallback(code)
+
+      const token = await app.signToken(
+        { sub: result.organizationId, email: result.email, type: 'access' },
+        { expiresIn: '24h' },
+      )
+
+      return reply.redirect(`https://verify.solidus.network/github-callback?token=${encodeURIComponent(token)}`)
+    } catch (err) {
+      app.log.error({ err }, 'GitHub OAuth callback failed')
+      return reply.redirect('https://verify.solidus.network/login?error=github_auth_failed')
+    }
+  })
+
+  // -------------------------------------------------------------------------
   // POST /register
   // -------------------------------------------------------------------------
   app.post('/register', async (request, reply) => {
