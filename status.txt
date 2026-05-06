@@ -1,0 +1,36 @@
+  ┌───────────────────────────────────────┬────────────────────────────────┬─────────────────────────────────────┐
+  │                  Gap                  │             State              │               Effort                │
+  ├───────────────────────────────────────┼────────────────────────────────┼─────────────────────────────────────┤
+  │ marketing/apps/frontend               │ Empty shell, prototype ready   │ Medium — same pattern as verify     │
+  ├───────────────────────────────────────┼────────────────────────────────┼─────────────────────────────────────┤
+  │ Wire @solidus/sdk into verify backend │ SDK exists, backend ignores it │ Low — targeted wiring in KYC worker │
+  └───────────────────────────────────────┴────────────────────────────────┴─────────────────────────────────────┘
+
+⏺ Based on the plan: Phase 1 — Foundation.
+
+  It's the right next step because it has zero backend dependencies — pure frontend setup. Without it, nothing else can be
+  wired.
+
+  Four files to create:
+
+  ┌──────────────────┬────────────────────────────────────────────────────────┐
+  │       File       │                          What                          │
+  ├──────────────────┼────────────────────────────────────────────────────────┤
+  │ .env.local       │ NEXT_PUBLIC_API_URL=http://localhost:3001              │
+  ├──────────────────┼────────────────────────────────────────────────────────┤
+  │ src/types/api.ts │ TypeScript interfaces matching all backend Zod schemas │
+  ├──────────────────┼────────────────────────────────────────────────────────┤
+  │ src/lib/api.ts   │ Typed fetch wrapper + ApiError class                   │
+  ├──────────────────┼────────────────────────────────────────────────────────┤
+  │ src/lib/auth.tsx │ AuthContext, useAuth hook, localStorage token storage  │
+  └──────────────────┴────────────────────────────────────────────────────────┘
+
+  Then two existing files to update:
+
+  ┌────────────────────────────────┬──────────────────────────────────────────────────────────────────────────┐
+  │              File              │                                  Change                                  │
+  ├────────────────────────────────┼──────────────────────────────────────────────────────────────────────────┤
+  │ src/app/(dashboard)/layout.tsx │ Wrap in <AuthProvider>, add route guard (redirect to /login if no token) │
+  ├────────────────────────────────┼──────────────────────────────────────────────────────────────────────────┤
+  │ src/app/(auth)/login/page.tsx  │ Wire to POST /v1/auth/login as first real integration test               │
+  └────────────────────────────────┴──────────────────────────────────────────────────────────────────────────┘
