@@ -10,6 +10,11 @@ import type { CredentialIssuedEvent } from '@solidus/events'
 import { notFound, conflict } from '../../plugins/error-handler.js'
 import type { SandboxOutcome } from '@solidus/types'
 import { writeAuditLog } from '../../lib/audit.js'
+import {
+  BbsUnsupportedError,
+  signBbsKycCredential,
+  type BbsCredentialBundle,
+} from '../../lib/bbs-issuer.js'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -77,6 +82,47 @@ const HOSTED_BASE = 'https://verify.solidus.network'
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * Retrieve the BBS+ off-chain bundle (signature, header, messages, pubkey)
+ * for a completed verification, if one was issued in BBS+ form. Returns
+ * null when the verification is not BBS+ or has not been completed.
+ *
+ * Auth is enforced at the route layer via the API-key org scoping.
+ */
+export async function getBbsBundle(
+  organizationId: string,
+  verificationId: string,
+): Promise<BbsCredentialBundle | null> {
+  const sql = getSql()
+  const rows = await sql<
+    { metadata: Record<string, unknown>; status: string }[]
+  >`
+    SELECT metadata, status
+    FROM verifications
+    WHERE id = ${verificationId} AND organization_id = ${organizationId}
+    LIMIT 1
+  `
+  const row = rows[0]
+  if (!row) return null
+  if (row.status !== 'completed') return null
+  const bbs = row.metadata?.['bbs']
+  if (!bbs || typeof bbs !== 'object') return null
+  return bbs as BbsCredentialBundle
+}
+
+/**
+ * Map KYC level (1/2/3) to the chain's `CredentialType` enum string.
+ * Matches `CredentialType` variants in `solidus-txns/src/credential.rs`.
+ */
+function kycLevelToCredentialType(level: number): string {
+  switch (level) {
+    case 1: return 'KycL1'
+    case 2: return 'KycL2'
+    case 3: return 'KycL3'
+    default: throw new Error(`unsupported KYC level: ${level}`)
+  }
+}
 
 function mapRow(row: VerificationDbRow): VerificationRow {
   return {
@@ -256,30 +302,74 @@ export async function processCompletion(verificationId: string): Promise<void> {
   // subjectDid falls back to a placeholder if not set (e.g. anonymous flow)
   const subjectDid = row.subject_did ?? `did:solidus:subject:${row.id}`
 
-  const vc = await sdk.credentials.issue({
-    subjectDid,
-    issuerDid: config.ISSUER_DID,
-    issuerPrivateKey: config.ISSUER_PRIVATE_KEY,
-    type: ['VerifiableCredential', 'KYCCredential'],
-    claims: {
-      kycLevel: row.level,
-      verificationId: row.id,
-      verifiedAt: new Date().toISOString(),
-    },
-    expiresInDays: 365,
-    network: config.SOLIDUS_SDK_MODE,
-  })
+  // Branch on credential format. Default is Ed25519 (existing behavior).
+  // Set `metadata.format = "bbs"` at session creation to opt into BBS+.
+  const requestedFormat = (row.metadata?.['format'] as string | undefined) ?? 'ed25519'
 
-  // Update verification to completed with credential reference
+  let credentialId: string
+  let bbsBundle: BbsCredentialBundle | null = null
+
+  if (requestedFormat === 'bbs') {
+    if (!sdk.bbs) {
+      throw new Error('BBS+ format requested but SDK is in stub mode (no chain)')
+    }
+    const verifiedAt = new Date().toISOString()
+    bbsBundle = await signBbsKycCredential({
+      subjectDid,
+      verificationId: row.id,
+      verifiedAt,
+      kycLevel: row.level,
+      issuerDid: config.ISSUER_DID,
+      country: row.metadata?.['country'] as string | undefined,
+      documentType: row.metadata?.['documentType'] as string | undefined,
+      documentHash: row.metadata?.['documentHash'] as string | undefined,
+    })
+
+    const issued = await sdk.bbs.issueCredential({
+      issuerPrivateKey: config.ISSUER_PRIVATE_KEY,
+      subjectDid,
+      credentialType: kycLevelToCredentialType(row.level),
+      payloadHash: bbsBundle.payloadHash,
+      bbsPubkey: new Uint8Array(Buffer.from(bbsBundle.bbsPubkeyHex, 'hex')),
+      bbsMessageCount: bbsBundle.bbsMessageCount,
+    })
+    credentialId = issued.credentialId
+  } else {
+    const vc = await sdk.credentials.issue({
+      subjectDid,
+      issuerDid: config.ISSUER_DID,
+      issuerPrivateKey: config.ISSUER_PRIVATE_KEY,
+      type: ['VerifiableCredential', 'KYCCredential'],
+      claims: {
+        kycLevel: row.level,
+        verificationId: row.id,
+        verifiedAt: new Date().toISOString(),
+      },
+      expiresInDays: 365,
+      network: config.SOLIDUS_SDK_MODE,
+    })
+    credentialId = vc.id
+  }
+
+  // Persist credential id + (for BBS) the off-chain bundle in metadata so
+  // the wallet can fetch it later.
+  const updatedMetadata = {
+    ...row.metadata,
+    ...(bbsBundle ? { bbs: bbsBundle } : {}),
+  }
   await sql`
     UPDATE verifications
     SET
       status = 'completed',
       completed_at = now(),
       updated_at = now(),
-      credential_id = ${vc.id}
+      credential_id = ${credentialId},
+      metadata = ${sql.json(updatedMetadata as postgres.JSONValue)}
     WHERE id = ${verificationId}
   `
+
+  // Set vc reference for downstream payload (event + webhook).
+  const vc = { id: credentialId, type: ['VerifiableCredential', 'KYCCredential'] }
 
   writeAuditLog({
     organizationId: row.organization_id,

@@ -28,6 +28,12 @@ const schema = z.object({
   ISSUER_PRIVATE_KEY: z.string().length(64),  // hex-encoded Ed25519 private key
   ISSUER_DID: z.string().min(1),           // did:solidus:... of the verify issuer
 
+  // BBS+ issuer key (optional). 64-char hex = 32-byte BBS+ secret key.
+  // When set, verifications with metadata.format === 'bbs' will be issued
+  // as BBS+ credentials. When unset, BBS+ flow is unavailable and any
+  // request for it falls back with a clear error.
+  BBS_ISSUER_PRIVATE_KEY: z.string().length(64).optional(),
+
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
 

@@ -202,6 +202,33 @@ async function verificationRoutesPlugin(app: FastifyInstance): Promise<void> {
   )
 
   // -------------------------------------------------------------------------
+  // GET /:verificationId/bbs  — BBS+ off-chain credential bundle
+  // Returns 404 if the verification is not completed, not BBS+, or not
+  // owned by the requesting org. The bundle is the data the wallet stores
+  // off-chain (signature + messages + header + pubkey).
+  // -------------------------------------------------------------------------
+  app.get(
+    '/:verificationId/bbs',
+    { preHandler: [requireApiKey] },
+    async (request, reply) => {
+      const { verificationId } = parseParams(
+        VerificationIdParams,
+        request.params,
+      )
+      const bundle = await verificationService.getBbsBundle(
+        request.apiKey.organizationId,
+        verificationId,
+      )
+      if (!bundle) {
+        return reply.code(404).send({
+          error: 'No BBS+ credential bundle for this verification',
+        })
+      }
+      return reply.send(bundle)
+    },
+  )
+
+  // -------------------------------------------------------------------------
   // GET /s/:sessionToken  — public hosted flow (no auth)
   // Returns minimal public data; never exposes org info
   // -------------------------------------------------------------------------
